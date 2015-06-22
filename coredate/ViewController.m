@@ -22,18 +22,29 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    NSManagedObjectContext *context = [self getDefaultContext];
-
     [self threadReader];
     [self threadWriter];
-
-
 }
 
-- (NSManagedObjectContext *)getDefaultContext {
-    AppDelegate *appDelegate = [[UIApplication sharedApplication] delegate];
-    NSManagedObjectContext *context = [appDelegate managedObjectContext];
-    return context;
+- (void)threadReader {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSManagedObjectContext *context = [self getDefaultContext];
+        while (true) {
+            NSFetchRequest *request = [[NSFetchRequest alloc] init];
+            [request setEntity:[NSEntityDescription entityForName:@"NewsModel" inManagedObjectContext:context]];
+            [request setPredicate:[NSPredicate predicateWithFormat:@"likes = %d", 1]];
+            NSError *error;
+            NSArray *result = [context executeFetchRequest:request error:&error];
+
+            if (error) {
+                NSLog(@"reader error = %@", [error localizedDescription]);
+            } else {
+                NSLog(@"reader result count = %d", [result count]);
+            }
+        }
+    });
+
+
 }
 
 - (void)threadWriter {
@@ -62,31 +73,15 @@
 
 }
 
-- (void)threadReader {
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        NSManagedObjectContext *context = [self getDefaultContext];
-        while (true) {
-            NSFetchRequest *request = [[NSFetchRequest alloc] init];
-            [request setEntity:[NSEntityDescription entityForName:@"NewsModel" inManagedObjectContext:context]];
-            [request setPredicate:[NSPredicate predicateWithFormat:@"likes = %d", 1]];
-            NSError *error;
-            NSArray *result = [context executeFetchRequest:request error:&error];
-
-            if (error) {
-                NSLog(@"reader error = %@", [error localizedDescription]);
-            } else {
-                NSLog(@"reader result count = %d", [result count]);
-            }
-        }
-    });
-
-
+- (NSManagedObjectContext *)getDefaultContext {
+    AppDelegate *appDelegate = [[UIApplication sharedApplication] delegate];
+    NSManagedObjectContext *context = [appDelegate managedObjectContext];
+    return context;
 }
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
 }
-
 
 @end
